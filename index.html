@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="An interview-ready React cheat sheet covering modern React concepts.">
+  <title>Everything you need to know about React</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="#">@vlada.asana <span>·</span> React Cheat Sheet</a>
+    <div class="top-actions"><button id="themeToggle" class="text-button" aria-label="Toggle theme">◐</button><a class="top-cta" href="#contents">CONTENTS</a></div>
+  </div>
+</header>
+<main class="page">
+  <section class="hero">
+    <p class="byline">The interview cheat sheet by <a href="https://www.instagram.com/vlada.asana/" target="_blank" rel="noopener">@vlada.asana</a></p>
+    <p class="eyebrow">React</p>
+    <h1>Everything you need to know about <span>REACT</span></h1>
+    <p class="lede">State and re-renders, the React Compiler, Actions and useActionState, the use() hook, Server Components, and where the ecosystem actually stands right now. Interview-ready.</p>
+    <div class="react-mark" aria-label="React atom illustration">
+      <svg viewBox="0 0 540 220" role="img">
+        <ellipse cx="270" cy="105" rx="120" ry="42"/><ellipse cx="270" cy="105" rx="120" ry="42" transform="rotate(60 270 105)"/><ellipse cx="270" cy="105" rx="120" ry="42" transform="rotate(120 270 105)"/>
+        <circle cx="270" cy="105" r="12"/><text x="270" y="109">R</text>
+        <text class="caption" x="270" y="200">React: components, state, reconciliation</text>
+      </svg>
+    </div>
+    <div class="meta"><span>11 sections</span><span>~17 min read</span><span>builds on the JavaScript guide</span></div>
+    <div class="updated">★ UPDATED FOR 2026: React 19.2, Compiler 1.0, RSC stable</div>
+  </section>
+
+  <section class="toc" id="contents">
+    <p class="eyebrow">Contents</p><h2>11 sections. Click to jump.</h2>
+    <div class="progress-wrap"><div class="progress-label"><span>YOUR READING PROGRESS</span><strong id="progressText">0%</strong></div><div class="progress"><span id="progressBar"></span></div></div>
+    <input id="search" class="search" type="search" placeholder="Search topics in this guide…" aria-label="Search topics">
+    <ol class="toc-list" id="tocList">
+      <li><a href="#mental"><b>01</b>The Mental Model</a></li><li><a href="#state"><b>02</b>State &amp; Re-renders</a></li>
+      <li><a href="#effects"><b>03</b>useEffect: Deps, Cleanup, When Not To</a></li><li><a href="#compiler"><b>04</b>The Compiler Era, Do You Still Need memo?</a></li>
+      <li><a href="#actions"><b>05</b>Actions, useActionState &amp; useOptimistic</a></li><li><a href="#use"><b>06</b>The use() Hook &amp; Suspense</a></li>
+      <li><a href="#rsc"><b>07</b>Server vs Client Components</a></li><li><a href="#statemgmt"><b>08</b>Context vs External State Libraries</a></li>
+      <li><a href="#patterns"><b>09</b>Custom Hooks &amp; Composition Patterns</a></li><li><a href="#mistakes"><b>10</b>Common Mistakes &amp; Pitfalls</a></li>
+      <li><a href="#interview"><b>11</b>Interview Quick Reference</a></li>
+    </ol>
+  </section>
+
+  <article class="section" id="mental"><p class="section-kicker">SECTION 01</p><h2>The Mental Model</h2><div class="body">
+    <p>React's core idea: a component is a function that takes props and state and returns a description of UI. When state changes, React re-runs that function, compares the new description to the old one (reconciliation), and updates only what changed in the real DOM.</p>
+    <p>Modern React changes how much performance work you manage by hand. The React Compiler can automatically memoize components and values, reducing the need to routinely sprinkle <code>memo</code>, <code>useMemo</code>, and <code>useCallback</code> through new code.</p>
+    <h3>The three triggers for a re-render</h3><ul><li><strong>Own state changed.</strong> A state setter was called with a new value.</li><li><strong>A parent re-rendered.</strong> The child is rendered again as part of its parent's render.</li><li><strong>A subscribed context changed.</strong> A Context value read by this component was updated.</li></ul>
+    <div class="rules"><b>QUICK DECISION RULE · WHICH TRIGGER IS IT?</b><ol><li>Did a state setter run with a new value? That's the trigger.</li><li>No state change, but a parent rendered? Trace upward to the component that did.</li><li>Neither, but the component reads Context? Check the provider value.</li><li>Still unclear? Log during render and reproduce the interaction.</li></ol></div>
+    <div class="callout"><strong>Interview tip.</strong> “A component re-renders when its own state changes, its parent re-renders, or a context it subscribes to changes. React then reconciles the returned tree against the previous one and patches the DOM nodes that differ.”</div>
+    <h3>What interviewers usually want to hear</h3><ul><li>You can state the three triggers without hesitation.</li><li>You understand reconciliation compares tree descriptions; React does not simply redraw the whole page.</li><li>You know what the Compiler handles automatically versus what remains manual.</li></ul><p class="good"><strong>Good default:</strong> components are functions of state; re-renders come from state, parent, or context changes; reconciliation patches what changed.</p>
+  </div></article>
+
+  <article class="section" id="state"><p class="section-kicker">SECTION 02</p><h2>State &amp; Re-renders</h2><div class="body">
+    <p>State updates are batched. Reading state immediately after setting it still gives you the value from the current render because the next render has not happened yet.</p>
+    <div class="code"><div class="code-head"><span>STALE CLOSURE VS FUNCTIONAL UPDATER</span><button class="copy">COPY</button></div><pre><code>function Counter() {
+  const [count, setCount] = useState(0);
+
+  function handleClick() {
+    setCount(count + 1);
+    console.log(count); // old value from this render
+
+    // Each updater receives the latest queued value
+    setCount(c => c + 1);
+    setCount(c => c + 1);
+  }
+}</code></pre></div>
+    <p>Calling <code>setCount(count + 1)</code> twice closes over the same count, so the updates do not stack as two increments. The functional updater form receives the latest queued value each time.</p>
+    <div class="rules"><b>WHEN TO USE THE FUNCTIONAL UPDATER</b><ol><li><strong>New state depends on previous state?</strong> Use <code>setX(x =&gt; ...)</code>.</li><li><strong>New state is independent?</strong> A plain setter is fine.</li><li><strong>Need the new value immediately?</strong> Compute it yourself or read it on the next render; don't expect the setter to mutate the current closure.</li></ol></div>
+    <div class="callout"><strong>Interview tip.</strong> Use the functional updater whenever the next value depends on the previous one. It stays correct when several updates are queued in one event handler.</div>
+    <h3>What interviewers usually want to hear</h3><ul><li>State reads after a setter still reflect the current render's closure.</li><li>You use functional updates when state depends on its previous value.</li><li>You understand automatic batching in modern React.</li></ul>
+    <p class="good"><strong>Good default:</strong> use functional updates for dependent state changes, and don't read a setter's result from the same render.</p>
+  </div></article>
+
+  <article class="section" id="effects"><p class="section-kicker">SECTION 03</p><h2>useEffect: Deps, Cleanup, When Not To</h2><div class="body">
+    <p><code>useEffect</code> synchronizes a component with something outside React: a subscription, timer, browser API, or imperative DOM integration. It is not a general-purpose “run this when something changes” mechanism.</p>
+    <h3>The dependency array</h3><div class="table"><div class="tr th"><span>DEPENDENCY ARRAY</span><span>WHEN IT RUNS</span></div><div class="tr"><span>Omitted</span><span>After every render.</span></div><div class="tr"><span><code>[]</code></span><span>After the initial mount (with development Strict Mode considerations).</span></div><div class="tr"><span><code>[a, b]</code></span><span>After mount and when a dependency changes.</span></div></div>
+    <div class="code"><div class="code-head"><span>DERIVED STATE VIA EFFECT · ANTI-PATTERN</span><button class="copy">COPY</button></div><pre><code>// Avoid: extra render and briefly stale UI
+const [fullName, setFullName] = useState('');
+useEffect(() => {
+  setFullName(`${firstName} ${lastName}`);
+}, [firstName, lastName]);
+
+// Prefer: derive during render
+const fullName = `${firstName} ${lastName}`;</code></pre></div>
+    <p>If a value can be calculated from props or state during render, it usually does not belong in an effect. Effects are for synchronization with external systems.</p>
+    <div class="rules"><b>COULD THIS JUST BE COMPUTED DURING RENDER?</b><ol><li>Derived from props or state? Calculate it during render.</li><li>Subscription, timer, external fetch lifecycle, or DOM integration? An effect may be appropriate.</li><li>Event-handling logic such as a button click or form submit? Put it in the event handler or an Action.</li><li>When an effect sets up something, return cleanup to undo it.</li></ol></div>
+    <div class="callout"><strong>Interview tip.</strong> Before reaching for <code>useEffect</code>, ask whether the value can be computed during render. If it can, an effect adds unnecessary complexity and an extra render.</div>
+    <p class="good"><strong>Good default:</strong> use effects to synchronize with external systems; compute derived values during render; keep user-event logic in event handlers or Actions.</p>
+  </div></article>
+
+  <article class="section" id="compiler"><p class="section-kicker">SECTION 04</p><h2>The Compiler Era, Do You Still Need memo?</h2><div class="body">
+    <p>The React Compiler automates many memoization optimizations for components and values when it can safely analyze your code. That changes manual memoization from a routine default to a deliberate tool.</p>
+    <div class="table"><div class="tr th"><span>TOOL</span><span>WHAT IT DOES / MODERN GUIDANCE</span></div><div class="tr"><span><code>React.memo</code></span><span>Historically skips renders when props are shallow-equal. Compiler can often apply equivalent optimization automatically.</span></div><div class="tr"><span><code>useMemo</code></span><span>Caches a calculation. Manual use is useful when the Compiler cannot safely optimize or in non-compiled code.</span></div><div class="tr"><span><code>useCallback</code></span><span>Stabilizes a function reference. Compiler can handle many common cases.</span></div></div>
+    <p>The Compiler does not remove the need to understand memoization. Pure render functions and the Rules of React remain essential. Existing codebases may not have the Compiler enabled.</p>
+    <div class="rules"><b>MANUAL MEMOIZATION DECISION</b><ol><li>Compiler enabled and code follows the Rules of React? Usually let it optimize.</li><li>Legacy or non-compiled code? Memoize when a measured cost justifies it.</li><li>Compiler cannot analyze a value safely? Manual memoization may still help.</li><li>Always keep render functions pure and avoid mutating props or state.</li></ol></div>
+    <div class="callout"><strong>Interview tip.</strong> “I lean on the Compiler for routine memoization in new code, but I still understand <code>memo</code>, <code>useMemo</code>, and <code>useCallback</code> for existing projects and cases the Compiler cannot optimize.”</div>
+    <p class="good"><strong>Good default:</strong> don't sprinkle memoization everywhere; understand the cost, the Compiler, and the codebase you are working in.</p>
+  </div></article>
+
+  <article class="section" id="actions"><p class="section-kicker">SECTION 05</p><h2>Actions, useActionState &amp; useOptimistic</h2><div class="body">
+    <p>React Actions provide a model for async mutations such as form submissions. They integrate pending state, results, and optimistic UI rather than requiring every form to hand-wire several pieces of state.</p>
+    <div class="table"><div class="tr th"><span>API</span><span>WHAT IT GIVES YOU</span></div><div class="tr"><span>Actions</span><span>Async functions used with forms or transitions; React can track pending work.</span></div><div class="tr"><span><code>useActionState</code></span><span>Connects an Action to its returned state and pending status.</span></div><div class="tr"><span><code>useFormStatus</code></span><span>Lets a child read the pending status of its nearest parent form.</span></div><div class="tr"><span><code>useOptimistic</code></span><span>Shows an optimistic value while an Action is in progress; the UI can revert if it fails.</span></div></div>
+    <div class="code"><div class="code-head"><span>useActionState PATTERN</span><button class="copy">COPY</button></div><pre><code>function AddComment({ addCommentAction }) {
+  const [state, formAction, isPending] = useActionState(
+    addCommentAction,
+    { error: null }
+  );
+
+  return (
+    &lt;form action={formAction}&gt;
+      &lt;input name="comment" /&gt;
+      &lt;button disabled={isPending}&gt;
+        {isPending ? 'Posting…' : 'Post'}
+      &lt;/button&gt;
+      {state.error && &lt;p&gt;{state.error}&lt;/p&gt;}
+    &lt;/form&gt;
+  );
+}</code></pre></div>
+    <div class="rules"><b>WHICH ACTION API?</b><ol><li>Form submission with pending and result/error state? <code>useActionState</code>.</li><li>Child needs the nearest form's pending state? <code>useFormStatus</code>.</li><li>Instant feedback that may need rollback? <code>useOptimistic</code>.</li><li>Background async work without form state? A normal async function or transition may be enough.</li></ol></div>
+    <p class="good"><strong>Good default:</strong> Actions for mutations, <code>useActionState</code> for result and pending state, and <code>useOptimistic</code> for immediate feedback.</p>
+  </div></article>
+
+  <article class="section" id="use"><p class="section-kicker">SECTION 06</p><h2>The use() Hook &amp; Suspense</h2><div class="body">
+    <p><code>use()</code> can read the value of a Promise or Context during render. Unlike ordinary hooks, it can be called conditionally and inside loops. When a Promise is pending, the component suspends and the nearest Suspense boundary can show its fallback.</p>
+    <div class="code"><div class="code-head"><span>use() WITH A PROMISE</span><button class="copy">COPY</button></div><pre><code>function Comments({ commentsPromise }) {
+  // Promise should be stable and created outside this render
+  const comments = use(commentsPromise);
+  return comments.map(comment =&gt; (
+    &lt;Comment key={comment.id} {...comment} /&gt;
+  ));
+}
+
+&lt;Suspense fallback={&lt;Spinner /&gt;}&gt;
+  &lt;Comments commentsPromise={cachedCommentsPromise} /&gt;
+&lt;/Suspense&gt;</code></pre></div>
+    <p>Do not create a fresh Promise inline on every render. Keep it stable in a parent, cache, or data-fetching layer and pass it into the component.</p>
+    <div class="rules"><b>PROMISE STABILITY</b><ol><li>Promise created outside the component and passed in? Stable; suitable for <code>use()</code>.</li><li>Promise created fresh in the component body? Avoid; it can repeatedly suspend.</li><li>Need parameterized fetching? Cache promises by the relevant parameter.</li></ol></div>
+    <div class="callout"><strong>Interview tip.</strong> “<code>use()</code> reads a Promise or Context during render. For Promise reads, I pass a stable Promise and wrap the suspending component in Suspense.”</div>
+    <p class="good"><strong>Good default:</strong> use a stable Promise with a Suspense boundary; don't create a new Promise on every render.</p>
+  </div></article>
+
+  <article class="section" id="rsc"><p class="section-kicker">SECTION 07</p><h2>Server vs Client Components</h2><div class="body">
+    <p>Server Components run on the server and are the default in frameworks that support React Server Components. Client Components are used where interactivity, state, effects, event handlers, or browser APIs are required.</p>
+    <div class="table"><div class="tr th"><span>TYPE</span><span>CAN / CANNOT</span></div><div class="tr"><span>Server Component</span><span>Can access server-side resources and render on the server. Cannot use client hooks such as <code>useState</code> or browser event handlers.</span></div><div class="tr"><span>Client Component</span><span>Can use state, effects, event handlers, and browser APIs. Cannot directly access server-only resources or secrets.</span></div></div>
+    <p>Server Components can render Client Components. A Client Component should not import a Server Component directly; instead, server-rendered content can be passed through props or children.</p>
+    <div class="rules"><b>SERVER OR CLIENT?</b><ol><li>Default to Server Components when the framework supports them.</li><li>Need state, effects, browser APIs, or event handlers? Use a Client Component.</li><li>Need a database or secret? Keep that work server-side.</li><li>Push the client boundary as low in the component tree as practical.</li></ol></div>
+    <div class="callout"><strong>Interview tip.</strong> “I'd default to Server Components and add a small Client Component boundary only around the interactive parts. That avoids shipping unnecessary JavaScript to the browser.”</div>
+    <p class="good"><strong>Good default:</strong> server by default; client only where interactivity is needed; keep server-only resources out of client bundles.</p>
+  </div></article>
+
+  <article class="section" id="statemgmt"><p class="section-kicker">SECTION 08</p><h2>Context vs External State Libraries</h2><div class="body">
+    <p>Context solves prop drilling; it is not automatically a high-performance state-management solution. Consumers re-render when the Context value they read changes.</p>
+    <div class="table"><div class="tr th"><span>TOOL</span><span>BEST FOR / WATCH OUT FOR</span></div><div class="tr"><span><code>useState</code> / <code>useReducer</code></span><span>Local component state. Lift only as far as sharing requires.</span></div><div class="tr"><span>Context</span><span>Low-frequency shared values such as theme, locale, or auth. Broad updates can re-render consumers.</span></div><div class="tr"><span>Zustand / Redux / Jotai</span><span>Complex or frequently updated cross-cutting state. Adds concepts and dependencies.</span></div><div class="tr"><span>Server-state tools</span><span>Fetched data with caching, revalidation, and staleness; treat it differently from local UI state.</span></div></div>
+    <div class="rules"><b>WHICH STATE TOOL?</b><ol><li>Only one component needs it? <code>useState</code> or <code>useReducer</code>.</li><li>A few distant components need a rarely changing value? Context.</li><li>Many components need frequent updates with performance requirements? Consider an external store.</li><li>Data belongs to a server? Use a server-state or framework data-fetching approach.</li></ol></div>
+    <p class="good"><strong>Good default:</strong> local state first, Context for infrequent shared values, external stores when complexity or update frequency justifies them, and dedicated handling for server state.</p>
+  </div></article>
+
+  <article class="section" id="patterns"><p class="section-kicker">SECTION 09</p><h2>Custom Hooks &amp; Composition Patterns</h2><div class="body">
+    <p>A custom Hook is a function that calls other Hooks. Its value is extracting reusable stateful logic so components can focus on rendering.</p>
+    <div class="code"><div class="code-head"><span>A REAL CUSTOM HOOK · useDebouncedValue</span><button class="copy">COPY</button></div><pre><code>function useDebouncedValue(value, delay) {
+  const [debounced, setDebounced] = useState(value);
+
+  useEffect(() =&gt; {
+    const timer = setTimeout(() =&gt; setDebounced(value), delay);
+    return () =&gt; clearTimeout(timer);
+  }, [value, delay]);
+
+  return debounced;
+}
+
+// Usage
+const debouncedQuery = useDebouncedValue(query, 300);</code></pre></div>
+    <div class="rules"><b>WHEN TO EXTRACT A CUSTOM HOOK</b><ol><li>The same stateful logic is duplicated across components? Extract it.</li><li>Only one component uses it once? Keep it inline until reuse appears.</li><li>Does the function call no Hooks? It may simply be a regular helper function.</li></ol></div>
+    <p>Prefer composition over configuration for flexible component APIs. Passing children or slots often scales better than adding many boolean props to one component.</p>
+    <div class="callout"><strong>Interview tip.</strong> Extract a custom Hook when stateful logic is genuinely reused, and prefer composition via children or slots over a component with an ever-growing list of configuration flags.</div>
+    <p class="good"><strong>Good default:</strong> extract duplicated stateful logic, follow the Rules of Hooks, and compose components with children or slots.</p>
+  </div></article>
+
+  <article class="section" id="mistakes"><p class="section-kicker">SECTION 10</p><h2>Common Mistakes &amp; Pitfalls</h2><div class="body">
+    <p>The gap between “I know React” and “I interview well in React” is often in the details below.</p>
+    <div class="table"><div class="tr th three"><span>MISTAKE</span><span>WHY IT HURTS</span><span>FIX</span></div>
+      <div class="tr three"><span>Mutating state directly</span><span>Breaks reference-based change detection and can create confusing UI.</span><span>Create new arrays and objects with spread, <code>map</code>, or <code>filter</code>.</span></div>
+      <div class="tr three"><span>Missing or unstable list keys</span><span>React can associate component state with the wrong item after reorder.</span><span>Use a stable unique ID, not an array index for reorderable lists.</span></div>
+      <div class="tr three"><span>Effect for derived values</span><span>Unnecessary render and stale UI window.</span><span>Compute derived values during render.</span></div>
+      <div class="tr three"><span>Fresh Promise inline for <code>use()</code></span><span>Suspense may never settle as expected.</span><span>Cache the Promise and pass a stable reference.</span></div>
+      <div class="tr three"><span>Ignoring loading, error, or empty states</span><span>Feature feels incomplete and edge cases break.</span><span>Design loading, error, empty, and success states explicitly.</span></div>
+      <div class="tr three"><span>Repeating outdated memoization advice</span><span>Signals that you have not followed modern React tooling.</span><span>Know what the Compiler automates and when manual memoization remains useful.</span></div>
+    </div>
+    <div class="rules"><b>ARE YOU SURE THAT FEATURE IS STABLE?</b><ol><li>Know the status of React APIs in the version and framework you use.</li><li>Check official release notes before relying on newly introduced or Canary features.</li><li>If unsure in an interview, state the uncertainty and explain how you would verify it.</li></ol></div>
+    <p class="good"><strong>Good default:</strong> avoid mutation, use stable keys, keep effects focused, model async UI states, and verify feature stability instead of guessing.</p>
+  </div></article>
+
+  <article class="section" id="interview"><p class="section-kicker">SECTION 11</p><h2>Interview Quick Reference</h2><div class="body">
+    <h3>Signal words and your response</h3><div class="table"><div class="tr th"><span>IF THE QUESTION SAYS</span><span>YOUR RESPONSE</span></div>
+      <div class="tr"><span>“Why did this re-render?”</span><span>Own state changed, parent rendered, or subscribed Context changed. Trace which one.</span></div>
+      <div class="tr"><span>“How would you handle this form?”</span><span>An Action with <code>useActionState</code> for pending and result state.</span></div>
+      <div class="tr"><span>“Do you still need useMemo?”</span><span>Compiler handles many cases; manual memoization remains for justified exceptions and non-compiled code.</span></div>
+      <div class="tr"><span>“Server or Client Component?”</span><span>Server by default; client boundary around the interactive leaf.</span></div>
+      <div class="tr"><span>“How would you share state?”</span><span>Escalate from local state to Context to an external store based on update frequency and complexity.</span></div>
+      <div class="tr"><span>“Explain use().”</span><span>Reads Promise or Context; Promise should be stable and used with Suspense.</span></div>
+    </div>
+    <div class="rules"><b>WHAT WOULD YOU REACH FOR?</b><ol><li>Form mutation with pending and error state? Actions + <code>useActionState</code>.</li><li>Instant feedback that may roll back? <code>useOptimistic</code>.</li><li>Data that suspends while loading? <code>use()</code> + Suspense + stable Promise.</li><li>Shared, rarely changing global value? Context.</li><li>Shared, frequently changing state at scale? External store.</li></ol></div>
+    <h3>What interviewers usually want to hear</h3><ul><li>Fluent fundamentals: re-render triggers, keys, effect dependencies.</li><li>Current knowledge of the Compiler, Actions, <code>use()</code>, and Server Components.</li><li>A deliberate state-management escalation path.</li><li>Honesty about what is stable versus experimental.</li></ul>
+    <p class="good"><strong>Good default:</strong> fundamentals by reflex, modern React APIs understood conceptually, Server Components by default where supported, and no confident guessing about experimental features.</p>
+  </div></article>
+
+  <section class="closing"><h2>That's it.</h2><p>11 sections, one cheat sheet. Bookmark it before your next React round.</p><a class="back" href="#contents">BACK TO CONTENTS</a></section>
+</main>
+<footer><a href="https://www.instagram.com/vlada.asana/" target="_blank" rel="noopener">Instagram: @vlada.asana</a><p>Companion to the JavaScript, API, and System Design interview guides · Built by @vlada.asana</p><small>Independent educational recreation. Not affiliated with or endorsed by the original creator.</small></footer>
+<div id="toast" role="status" aria-live="polite"></div>
+<script src="script.js"></script>
+</body></html>
